@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Incident, IncidentStatus, EmergencyType } from '../types';
 import { FireIcon, ShieldIcon, MapPinIcon, PhoneIcon, MedicalIcon, ClockIcon, FilterIcon } from './Icons';
 import InteractiveMap from './InteractiveMap';
@@ -8,16 +8,29 @@ interface DispatchViewProps {
   onLogout: () => void;
 }
 
+type TabView = 'LIVE' | 'HISTORY' | 'MAP';
+
 const DispatchView: React.FC<DispatchViewProps> = ({ onLogout }) => {
   const { incidents, updateIncidentStatus } = useIncidentSystem();
 
-  const [viewTab, setViewTab] = useState<'LIVE' | 'HISTORY'>('LIVE');
+  const [activeTab, setActiveTab] = useState<TabView>('LIVE');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   
   // History Filter State
   const [filterType, setFilterType] = useState<EmergencyType | 'ALL'>('ALL');
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
+
+  // Reset tab to LIVE on desktop resize if it was stuck on MAP (since map is always visible on desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && activeTab === 'MAP') {
+        setActiveTab('LIVE');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeTab]);
 
   // Live Incidents (Pending or Dispatched)
   const sortedLiveIncidents = useMemo(() => {
@@ -70,143 +83,149 @@ const DispatchView: React.FC<DispatchViewProps> = ({ onLogout }) => {
 
   const handleMapSelection = (id: string) => {
     setHighlightedId(id);
-    setViewTab('LIVE'); // Switch to live view to see the card
+    setActiveTab('LIVE'); // Switch to live view to see the card info
   };
 
   return (
-    <div className="flex h-full bg-slate-900 text-slate-100 overflow-hidden">
-      {/* Sidebar - Interactive Map & Stats (Always visible on desktop) */}
-      <div className="hidden lg:flex w-1/3 bg-slate-800 border-r border-slate-700 flex-col p-4">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-400">
-          <MapPinIcon className="w-5 h-5" /> Mapa Operacional
-        </h2>
+    <div className="flex flex-col lg:flex-row h-full bg-slate-900 text-slate-100 overflow-hidden relative">
+      
+      {/* 
+        ========================================
+        SIDEBAR / MAP CONTAINER 
+        Desktop: Always visible (1/3 width)
+        Mobile: Visible only if activeTab === 'MAP'
+        ========================================
+      */}
+      <div className={`
+        lg:flex lg:w-1/3 bg-slate-800 border-r border-slate-700 flex-col
+        ${activeTab === 'MAP' ? 'flex w-full h-full absolute z-20 top-0 left-0' : 'hidden'}
+        lg:relative lg:z-0
+      `}>
+        <div className="p-4 flex justify-between items-center bg-slate-800 shadow-md z-10">
+           <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400">
+             <MapPinIcon className="w-5 h-5" /> Mapa Operacional
+           </h2>
+           {/* Mobile Close Map Button */}
+           <button 
+             onClick={() => setActiveTab('LIVE')}
+             className="lg:hidden text-sm text-slate-400 border border-slate-600 px-3 py-1 rounded"
+           >
+             Fechar Mapa
+           </button>
+        </div>
         
         {/* Interactive Map Component */}
-        <div className="flex-1 bg-slate-900 rounded-xl relative overflow-hidden border border-slate-600 shadow-inner">
+        <div className="flex-1 bg-slate-900 relative overflow-hidden">
            <InteractiveMap 
              incidents={incidents} 
              onSelectIncident={handleMapSelection}
            />
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="bg-slate-700 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-red-400">{incidents.filter(i => i.status === IncidentStatus.PENDING).length}</div>
-                <div className="text-xs text-slate-400">Pendentes</div>
+        {/* Quick Stats Overlay on Desktop */}
+        <div className="p-4 grid grid-cols-2 gap-4 bg-slate-800">
+            <div className="bg-slate-700 p-3 rounded-lg flex flex-col items-center">
+                <div className="text-xl lg:text-2xl font-bold text-red-400">{incidents.filter(i => i.status === IncidentStatus.PENDING).length}</div>
+                <div className="text-[10px] lg:text-xs text-slate-400 text-center">Pendentes</div>
             </div>
-            <div className="bg-slate-700 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-400">{incidents.filter(i => i.status === IncidentStatus.DISPATCHED).length}</div>
-                <div className="text-xs text-slate-400">Em Atendimento</div>
+            <div className="bg-slate-700 p-3 rounded-lg flex flex-col items-center">
+                <div className="text-xl lg:text-2xl font-bold text-green-400">{incidents.filter(i => i.status === IncidentStatus.DISPATCHED).length}</div>
+                <div className="text-[10px] lg:text-xs text-slate-400 text-center">Em Atendimento</div>
             </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-slate-700 flex items-center justify-between px-6 bg-slate-800">
+      {/* 
+        ========================================
+        MAIN CONTENT AREA (LIVE & HISTORY)
+        Desktop: Always visible (2/3 width)
+        Mobile: Hidden if Map is active
+        ========================================
+      */}
+      <div className={`flex-1 flex flex-col min-w-0 ${activeTab === 'MAP' ? 'hidden lg:flex' : 'flex'}`}>
+        
+        {/* Header - Adaptive */}
+        <header className="h-16 border-b border-slate-700 flex items-center justify-between px-4 lg:px-6 bg-slate-800 shrink-0">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold hidden md:block">Central de Despacho</h1>
-            <div className="flex bg-slate-700 rounded-lg p-1">
+            <h1 className="text-lg lg:text-xl font-bold truncate">Central de Despacho</h1>
+            
+            {/* Desktop Tabs */}
+            <div className="hidden lg:flex bg-slate-700 rounded-lg p-1">
               <button 
-                onClick={() => setViewTab('LIVE')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${viewTab === 'LIVE' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                onClick={() => setActiveTab('LIVE')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${activeTab === 'LIVE' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <div className={`w-2 h-2 rounded-full ${viewTab === 'LIVE' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
+                <div className={`w-2 h-2 rounded-full ${activeTab === 'LIVE' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
                 Ao Vivo
               </button>
               <button 
-                onClick={() => setViewTab('HISTORY')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${viewTab === 'HISTORY' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                onClick={() => setActiveTab('HISTORY')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${activeTab === 'HISTORY' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
                 <ClockIcon className="w-4 h-4" />
                 Histórico
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3">
             <span className="text-sm text-slate-400 hidden sm:inline">{new Date().toLocaleDateString()}</span>
             <button 
                 onClick={onLogout}
-                className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-white"
+                className="text-xs bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-800 px-3 py-1.5 rounded transition-colors"
             >
-                Sair do Sistema
+                Sair
             </button>
           </div>
         </header>
 
-        {viewTab === 'LIVE' ? (
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {sortedLiveIncidents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-50">
-                <ShieldIcon className="w-16 h-16 mb-4" />
-                <p className="text-lg">Nenhum incidente ativo no momento.</p>
-              </div>
-            ) : (
-              sortedLiveIncidents.map(incident => (
-                <IncidentCard 
-                  key={incident.id} 
-                  incident={incident} 
-                  onAction={updateIncidentStatus}
-                  isHighlighted={incident.id === highlightedId}
-                />
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Content Body */}
+        {activeTab === 'HISTORY' ? (
+          <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
             {/* History Filters */}
-            <div className="p-4 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2 text-slate-300">
+            <div className="p-4 bg-slate-800 border-b border-slate-700 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center">
+              <div className="flex items-center gap-2 text-slate-300 w-full sm:w-auto">
                 <FilterIcon className="w-4 h-4" />
                 <span className="text-sm font-bold">Filtros:</span>
               </div>
               
-              <select 
-                className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-blue-500"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as EmergencyType | 'ALL')}
-              >
-                <option value="ALL">Todos os Tipos</option>
-                <option value={EmergencyType.POLICE}>Polícia</option>
-                <option value={EmergencyType.FIRE}>Bombeiros</option>
-                <option value={EmergencyType.MEDICAL}>SAMU</option>
-              </select>
+              <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+                <select 
+                  className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 w-full sm:w-auto col-span-2"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as EmergencyType | 'ALL')}
+                >
+                  <option value="ALL">Todos os Tipos</option>
+                  <option value={EmergencyType.POLICE}>Polícia</option>
+                  <option value={EmergencyType.FIRE}>Bombeiros</option>
+                  <option value={EmergencyType.MEDICAL}>SAMU</option>
+                </select>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">De:</span>
                 <input 
                   type="date" 
-                  className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2 outline-none focus:border-blue-500"
+                  className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2 outline-none focus:border-blue-500 w-full sm:w-auto"
                   value={dateStart}
                   onChange={(e) => setDateStart(e.target.value)}
                 />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Até:</span>
                 <input 
                   type="date" 
-                  className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2 outline-none focus:border-blue-500"
+                  className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg p-2 outline-none focus:border-blue-500 w-full sm:w-auto"
                   value={dateEnd}
                   onChange={(e) => setDateEnd(e.target.value)}
                 />
               </div>
-              
-              <div className="ml-auto text-xs text-slate-400">
-                {historyIncidents.length} registros encontrados
-              </div>
             </div>
 
-            {/* History Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-sm text-left text-slate-300">
+            {/* History Table (Scrollable) */}
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+              <table className="w-full text-sm text-left text-slate-300 min-w-[800px] lg:min-w-full">
                 <thead className="text-xs uppercase bg-slate-700 text-slate-400 sticky top-0">
                   <tr>
                     <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3">Data/Hora</th>
                     <th className="px-6 py-3">Tipo</th>
-                    <th className="px-6 py-3">Solicitante (CPF)</th>
-                    <th className="px-6 py-3">Resumo / Motivo</th>
+                    <th className="px-6 py-3">Solicitante</th>
+                    <th className="px-6 py-3">Resumo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,10 +251,7 @@ const DispatchView: React.FC<DispatchViewProps> = ({ onLogout }) => {
                           {incident.type === EmergencyType.POLICE && <ShieldIcon className="w-4 h-4 text-blue-500" />}
                           {incident.type === EmergencyType.FIRE && <FireIcon className="w-4 h-4 text-orange-500" />}
                           {incident.type === EmergencyType.MEDICAL && <MedicalIcon className="w-4 h-4 text-red-500" />}
-                          <span>
-                             {incident.type === EmergencyType.POLICE ? 'Polícia' : 
-                              incident.type === EmergencyType.FIRE ? 'Bombeiros' : 'SAMU'}
-                          </span>
+                          <span>{incident.type}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -244,24 +260,74 @@ const DispatchView: React.FC<DispatchViewProps> = ({ onLogout }) => {
                           <span className="text-xs text-slate-500">{incident.userCpf}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 max-w-md truncate" title={incident.description}>
+                      <td className="px-6 py-4 max-w-xs truncate">
                         {incident.aiAnalysis?.summary || incident.description}
                       </td>
                     </tr>
                   ))}
-                  {historyIncidents.length === 0 && (
-                     <tr>
-                       <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                         Nenhum histórico encontrado com os filtros selecionados.
-                       </td>
-                     </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </div>
+        ) : (
+          /* LIVE VIEW */
+          <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 pb-20 lg:pb-6">
+            {sortedLiveIncidents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-50">
+                <ShieldIcon className="w-16 h-16 mb-4" />
+                <p className="text-lg">Nenhum incidente ativo no momento.</p>
+              </div>
+            ) : (
+              sortedLiveIncidents.map(incident => (
+                <IncidentCard 
+                  key={incident.id} 
+                  incident={incident} 
+                  onAction={updateIncidentStatus}
+                  isHighlighted={incident.id === highlightedId}
+                />
+              ))
+            )}
+          </div>
         )}
       </div>
+
+      {/* 
+        ========================================
+        MOBILE BOTTOM NAVIGATION
+        Visible only on small screens (< lg)
+        ========================================
+      */}
+      <div className="lg:hidden absolute bottom-0 left-0 w-full bg-slate-900 border-t border-slate-700 flex justify-around items-center h-16 z-30 shadow-2xl">
+        <button 
+          onClick={() => setActiveTab('LIVE')}
+          className={`flex flex-col items-center justify-center w-full h-full ${activeTab === 'LIVE' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+           <div className={`mb-1 relative`}>
+             <ShieldIcon className="w-6 h-6" />
+             {incidents.some(i => i.status === IncidentStatus.PENDING) && (
+               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-slate-900"></span>
+             )}
+           </div>
+           <span className="text-[10px] font-bold">AO VIVO</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('MAP')}
+          className={`flex flex-col items-center justify-center w-full h-full ${activeTab === 'MAP' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+           <MapPinIcon className="w-6 h-6 mb-1" />
+           <span className="text-[10px] font-bold">MAPA</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('HISTORY')}
+          className={`flex flex-col items-center justify-center w-full h-full ${activeTab === 'HISTORY' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+           <ClockIcon className="w-6 h-6 mb-1" />
+           <span className="text-[10px] font-bold">HISTÓRICO</span>
+        </button>
+      </div>
+
     </div>
   );
 };
@@ -310,12 +376,13 @@ const IncidentCard: React.FC<{
   }
 
   return (
-    <div className={`relative bg-slate-800 rounded-lg border-l-4 shadow-lg overflow-hidden transition-all hover:bg-slate-750 ${typeConfig.color} ${incident.status === IncidentStatus.RESOLVED ? 'opacity-50 grayscale' : ''} ${isHighlighted ? 'ring-2 ring-white scale-[1.02]' : ''}`}>
-      <div className="p-5 flex flex-col md:flex-row gap-4">
+    <div className={`relative bg-slate-800 rounded-lg border-l-4 shadow-lg overflow-hidden transition-all hover:bg-slate-750 ${typeConfig.color} ${incident.status === IncidentStatus.RESOLVED ? 'opacity-50 grayscale' : ''} ${isHighlighted ? 'ring-2 ring-white scale-[1.01]' : ''}`}>
+      <div className="p-4 md:p-5 flex flex-col md:flex-row gap-4">
         
-        <div className="flex md:flex-col items-center gap-3 min-w-[80px]">
+        {/* Mobile Header: Icon + Status */}
+        <div className="flex md:flex-col items-center md:justify-start gap-3 md:min-w-[80px]">
             <div className={`p-3 rounded-full ${typeConfig.iconBg} ${typeConfig.iconColor}`}>
-                {typeConfig.icon}
+                {React.cloneElement(typeConfig.icon as React.ReactElement<{ className?: string }>, { className: "w-6 h-6 md:w-8 md:h-8" })}
             </div>
             {incident.aiAnalysis && (
                  <div className={`px-2 py-1 rounded text-xs font-bold text-white ${severityColor}`}>
@@ -325,7 +392,7 @@ const IncidentCard: React.FC<{
         </div>
 
         <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-xs font-mono text-slate-400">#{incident.id.slice(0, 8)}</span>
                 <span className="text-xs text-slate-400">• {new Date(incident.timestamp).toLocaleTimeString()}</span>
                 {incident.aiAnalysis && (
@@ -335,67 +402,66 @@ const IncidentCard: React.FC<{
                 )}
             </div>
             
-            <h3 className="text-lg font-semibold text-white mb-2">
+            <h3 className="text-lg font-semibold text-white mb-2 leading-tight">
                 {incident.aiAnalysis?.summary || "Relato de emergência"}
             </h3>
             
-            <p className="text-slate-300 text-sm mb-3 bg-slate-900/50 p-2 rounded border border-slate-700">
+            <p className="text-slate-300 text-sm mb-3 bg-slate-900/50 p-3 rounded border border-slate-700 leading-relaxed">
                 "{incident.description || 'Sem descrição detalhada.'}"
             </p>
 
-            <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                <div className="flex items-center gap-1">
-                    <MapPinIcon className="w-4 h-4 text-slate-500" />
-                    {incident.address ? (
-                        <span className="text-white font-medium">{incident.address}</span>
-                    ) : (
-                        <span>{incident.location.latitude.toFixed(4)}, {incident.location.longitude.toFixed(4)}</span>
-                    )}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-slate-400">
+                <div className="flex items-center gap-1.5">
+                    <MapPinIcon className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="text-white font-medium truncate max-w-[200px]">
+                      {incident.address || `${incident.location.latitude.toFixed(4)}, ${incident.location.longitude.toFixed(4)}`}
+                    </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <PhoneIcon className="w-4 h-4 text-slate-500" />
+                <div className="flex items-center gap-1.5">
+                    <PhoneIcon className="w-4 h-4 text-slate-500 shrink-0" />
                     <span className="text-slate-300">{incident.userContact}</span>
                     {incident.userCpf && (
-                      <span className="text-slate-500 text-xs ml-1">CPF: {incident.userCpf}</span>
+                      <span className="text-slate-500 text-xs ml-1 hidden sm:inline">({incident.userCpf})</span>
                     )}
                 </div>
             </div>
 
             {incident.aiAnalysis?.suggestedAction && (
-                <div className="mt-3 text-xs text-cyan-400 font-medium">
+                <div className="mt-3 text-xs text-cyan-400 font-medium bg-cyan-900/20 px-2 py-1 rounded inline-block">
                     Sugestão IA: {incident.aiAnalysis.suggestedAction}
                 </div>
             )}
         </div>
 
-        <div className="flex md:flex-col justify-center gap-2 min-w-[140px] border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-4">
+        {/* Action Buttons */}
+        <div className="flex flex-row md:flex-col justify-end md:justify-center gap-2 md:min-w-[140px] border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-4">
              {isPending ? (
                  <>
                     <button 
                         onClick={() => onAction(incident.id, IncidentStatus.DISPATCHED)}
-                        className="bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded font-bold shadow-lg transition-colors text-sm"
+                        className="flex-1 md:flex-none bg-green-600 hover:bg-green-500 text-white py-3 md:py-2 px-4 rounded font-bold shadow-lg transition-colors text-sm"
                     >
-                        DESPACHAR VIATURA
+                        DESPACHAR
                     </button>
                     <button 
                         onClick={() => onAction(incident.id, IncidentStatus.FALSE_ALARM)}
-                        className="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 rounded font-medium transition-colors text-xs"
+                        className="flex-1 md:flex-none bg-slate-700 hover:bg-slate-600 text-slate-300 py-3 md:py-2 px-4 rounded font-medium transition-colors text-xs"
                     >
-                        Alarme Falso
+                        Ignorar
                     </button>
                  </>
              ) : incident.status === IncidentStatus.DISPATCHED ? (
-                <div className="text-center">
-                    <div className="text-green-400 font-bold mb-2 text-sm animate-pulse">EM ATENDIMENTO</div>
+                <div className="text-center w-full">
+                    <div className="text-green-400 font-bold mb-2 text-xs md:text-sm animate-pulse">EM ATENDIMENTO</div>
                     <button 
                         onClick={() => onAction(incident.id, IncidentStatus.RESOLVED)}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded font-bold text-sm"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-2 px-4 rounded font-bold text-sm"
                     >
                         FINALIZAR
                     </button>
                 </div>
              ) : (
-                <div className="text-center text-slate-500 font-bold text-sm">
+                <div className="text-center text-slate-500 font-bold text-sm w-full">
                     FINALIZADO
                 </div>
              )}

@@ -171,12 +171,12 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
   // --- LOGIN SCREEN ---
   if (!isLoggedIn) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 bg-slate-900 animate-fade-in relative">
-        <button onClick={onBack} className="absolute top-6 left-6 text-slate-400 hover:text-white">
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-900 animate-fade-in relative overflow-y-auto">
+        <button onClick={onBack} className="absolute top-6 left-6 text-slate-400 hover:text-white z-10">
           ← Voltar ao Portal
         </button>
 
-        <div className="w-full max-w-sm bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+        <div className="w-full max-w-sm bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 my-auto">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-red-600 p-3 rounded-xl mb-4 shadow-lg shadow-red-900/20">
               <ShieldIcon className="w-10 h-10 text-white" />
@@ -233,28 +233,28 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
       case EmergencyType.POLICE:
         typeColor = 'bg-blue-600 hover:bg-blue-500';
         borderColor = 'border-blue-500';
-        icon = <ShieldIcon className="w-10 h-10 text-blue-500" />;
+        icon = <ShieldIcon className="w-8 h-8 md:w-10 md:h-10 text-blue-500" />;
         title = 'Acionar Polícia';
         placeholder = "Ex: Alguém está tentando entrar na minha casa, assalto em andamento...";
         break;
       case EmergencyType.FIRE:
         typeColor = 'bg-orange-600 hover:bg-orange-500';
         borderColor = 'border-orange-500';
-        icon = <FireIcon className="w-10 h-10 text-orange-500" />;
+        icon = <FireIcon className="w-8 h-8 md:w-10 md:h-10 text-orange-500" />;
         title = 'Acionar Bombeiros';
         placeholder = "Ex: Cheiro forte de gás, fumaça preta, incêndio em vegetação...";
         break;
       case EmergencyType.MEDICAL:
         typeColor = 'bg-red-600 hover:bg-red-500';
         borderColor = 'border-red-500';
-        icon = <MedicalIcon className="w-10 h-10 text-red-500" />;
+        icon = <MedicalIcon className="w-8 h-8 md:w-10 md:h-10 text-red-500" />;
         title = 'Acionar SAMU';
         placeholder = "Ex: Pessoa desmaiada, dor no peito, acidente de moto...";
         break;
     }
 
     return (
-      <div className="flex flex-col h-full p-6 animate-fade-in">
+      <div className="flex flex-col h-full p-4 md:p-6 animate-fade-in overflow-y-auto">
         <button 
           onClick={() => setSelectedType(null)}
           className="mb-6 text-gray-400 hover:text-white flex items-center gap-2"
@@ -262,19 +262,19 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
           ← Cancelar
         </button>
 
-        <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+        <h2 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-3">
           {icon}
           {title}
         </h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 min-h-[400px]">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-gray-300">O que está acontecendo? (Opcional)</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={placeholder}
-              className={`w-full h-32 bg-gray-800 rounded-xl p-4 text-white placeholder-gray-500 border-2 ${borderColor} focus:outline-none focus:ring-2 focus:ring-white`}
+              className={`w-full h-32 md:h-48 bg-gray-800 rounded-xl p-4 text-white placeholder-gray-500 border-2 ${borderColor} focus:outline-none focus:ring-2 focus:ring-white`}
             />
           </div>
 
@@ -283,14 +283,14 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
               <button
                 type="button"
                 onClick={() => setLocationMode('GPS')}
-                className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${locationMode === 'GPS' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 rounded-md text-sm font-bold transition-all ${locationMode === 'GPS' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
               >
                 Usar GPS
               </button>
               <button
                 type="button"
                 onClick={() => setLocationMode('MANUAL')}
-                className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${locationMode === 'MANUAL' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 rounded-md text-sm font-bold transition-all ${locationMode === 'MANUAL' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
               >
                 Digitar Endereço
               </button>
@@ -319,7 +319,7 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`mt-auto w-full py-6 rounded-2xl text-2xl font-bold text-white shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${typeColor}`}
+            className={`mt-auto w-full py-5 md:py-6 rounded-2xl text-xl md:text-2xl font-bold text-white shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${typeColor} mb-6`}
           >
             {isSubmitting ? (loadingLocation ? 'Localizando...' : 'Enviando...') : 'ENVIAR ALERTA'}
           </button>
@@ -330,8 +330,8 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
 
   // --- DASHBOARD ---
   return (
-    <div className="flex flex-col h-full p-6 relative overflow-hidden">
-      <div className="flex justify-between items-start mb-6">
+    <div className="flex flex-col h-full p-6 relative overflow-y-auto">
+      <div className="flex justify-between items-start mb-6 shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-white text-sm">
           ← Voltar
         </button>
@@ -341,7 +341,7 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
       </div>
 
       {userIncidents.length > 0 && (
-        <div className="mb-6 bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-xl">
+        <div className="mb-6 bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-xl shrink-0">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Seus Chamados Ativos</h3>
           <div className="flex flex-col gap-2">
             {userIncidents.map(inc => (
@@ -365,7 +365,7 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col justify-center items-center gap-4 z-10">
+      <div className="flex-1 flex flex-col justify-center items-center gap-4 z-10 w-full max-w-lg mx-auto">
         <div className="text-center mb-4">
           <h1 className="text-4xl font-extrabold mb-2">Sentinela</h1>
           <p className="text-gray-400">Olá, {phoneNumber}</p>
@@ -375,26 +375,26 @@ const CitizenView: React.FC<CitizenViewProps> = ({ onBack }) => {
 
         <button
           onClick={() => handleStartReport(EmergencyType.POLICE)}
-          className="w-full max-w-sm h-32 bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl shadow-xl flex items-center justify-start px-8 gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-blue-500 group"
+          className="w-full h-24 md:h-32 bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl shadow-xl flex items-center justify-start px-6 md:px-8 gap-4 md:gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-blue-500 group"
         >
-          <ShieldIcon className="w-12 h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold tracking-widest text-white">POLÍCIA</span>
+          <ShieldIcon className="w-10 h-10 md:w-12 md:h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
+          <span className="text-xl md:text-2xl font-bold tracking-widest text-white">POLÍCIA</span>
         </button>
 
         <button
           onClick={() => handleStartReport(EmergencyType.FIRE)}
-          className="w-full max-w-sm h-32 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl shadow-xl flex items-center justify-start px-8 gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-orange-500 group"
+          className="w-full h-24 md:h-32 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl shadow-xl flex items-center justify-start px-6 md:px-8 gap-4 md:gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-orange-500 group"
         >
-          <FireIcon className="w-12 h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold tracking-widest text-white">BOMBEIROS</span>
+          <FireIcon className="w-10 h-10 md:w-12 md:h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
+          <span className="text-xl md:text-2xl font-bold tracking-widest text-white">BOMBEIROS</span>
         </button>
 
         <button
           onClick={() => handleStartReport(EmergencyType.MEDICAL)}
-          className="w-full max-w-sm h-32 bg-gradient-to-r from-red-600 to-red-800 rounded-2xl shadow-xl flex items-center justify-start px-8 gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-red-500 group"
+          className="w-full h-24 md:h-32 bg-gradient-to-r from-red-600 to-red-800 rounded-2xl shadow-xl flex items-center justify-start px-6 md:px-8 gap-4 md:gap-6 hover:brightness-110 active:scale-95 transition-all border-l-8 border-red-500 group"
         >
-          <MedicalIcon className="w-12 h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold tracking-widest text-white">SAMU (192)</span>
+          <MedicalIcon className="w-10 h-10 md:w-12 md:h-12 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
+          <span className="text-xl md:text-2xl font-bold tracking-widest text-white">SAMU (192)</span>
         </button>
       </div>
     </div>
