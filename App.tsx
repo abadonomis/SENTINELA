@@ -9,13 +9,16 @@ type AppSection = 'LANDING' | 'CITIZEN' | 'DISPATCH_LOGIN' | 'DISPATCH_PORTAL';
 // ========================================================
 // LISTA DE SENHAS / IDs OPERACIONAIS PERMITIDOS
 // ========================================================
-// Adicione novos códigos aqui para liberar acesso ao painel
+// IMPORTANTE: O aviso "npm warn deprecated node-domexception" 
+// no terminal é apenas um alerta de dependência e NÃO impede 
+// o funcionamento deste login.
+//
+// Adicione novos códigos abaixo para liberar acesso ao painel:
 const VALID_OPERATIONAL_IDS = [
-  'admin123',  // Senha Admin
+  'admin123',  // Senha Admin Padrão
   'admin',     // Senha Curta
-  '1234567',
-  'john',    // ID Operacional
-  // '999888', // <--- Exemplo: Adicione novos IDs aqui (remova as // para ativar)
+  '123456',    // ID Operacional (CÓDIGO DA VIATURA/AGENTE)
+  // '999',    // Exemplo: Remova as barras para ativar
 ];
 // ========================================================
 
@@ -36,13 +39,16 @@ function MainLayout() {
   const handleDispatcherLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verifica se a senha digitada está inclusa na lista VALID_OPERATIONAL_IDS
-    if (VALID_OPERATIONAL_IDS.includes(password)) {
+    // Remove espaços em branco que podem ter sido digitados acidentalmente
+    const cleanPassword = password.trim();
+    
+    // Verifica se a senha digitada (limpa) está na lista de permitidos
+    if (VALID_OPERATIONAL_IDS.includes(cleanPassword)) {
       setSection('DISPATCH_PORTAL');
       setError('');
       setPassword('');
     } else {
-      setError('Credenciais inválidas. Tente novamente.');
+      setError('ID Operacional ou Senha inválida. Tente "123456".');
     }
   };
 
@@ -136,7 +142,7 @@ function MainLayout() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Digite seu ID "
+                placeholder="Digite seu ID (ex: 123456)"
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                 autoFocus
               />
