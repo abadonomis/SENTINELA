@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Sentinela - Alerta de Emergência",
+  "description": "Aplicativo de acionamento remoto para Polícia e Bombeiros com painel de monitoramento para batalhões, integrado com IA para triagem.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
